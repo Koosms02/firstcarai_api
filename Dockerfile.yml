@@ -1,0 +1,16 @@
+# Use the official PostgreSQL image as the base
+FROM postgres:latest
+
+# Set environment variables for the database
+# These can also be passed at runtime using 'docker run'
+ENV POSTGRES_USER=myuser
+ENV POSTGRES_PASSWORD=mypassword
+ENV POSTGRES_DB=mydatabase
+
+# (Optional) Copy a custom SQL script to initialize the database schema/data.
+# Any .sql or .sh scripts in this directory are executed on container startup.
+COPY init.sql /docker-entrypoint-initdb.d/
+
+# (Optional) Add a healthcheck to ensure the database is ready
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1

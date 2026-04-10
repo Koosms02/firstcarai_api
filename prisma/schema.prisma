@@ -4,10 +4,11 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Car {
-  id                 String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   make               String
   model              String
   year               Int?
@@ -24,7 +25,7 @@ model Car {
 }
 
 model User {
-  id              String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email           String           @unique
   netSalary       Decimal?         @map("net_salary") @db.Decimal
   creditScore     Int?             @map("credit_score")
@@ -39,7 +40,7 @@ model User {
 }
 
 model Recommendation {
-  id                   String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId               String?   @map("user_id") @db.Uuid
   carId                String?   @map("car_id") @db.Uuid
   estimatedMonthlyCost Decimal?  @map("estimated_monthly_cost") @db.Decimal
@@ -56,7 +57,7 @@ model Recommendation {
 }
 
 model InsuranceEstimate {
-  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   carId            String?   @map("car_id") @db.Uuid
   location         String?
   riskCategory     String?   @map("risk_category")
@@ -68,7 +69,7 @@ model InsuranceEstimate {
 }
 
 model UserPreference {
-  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId         String?   @map("user_id") @db.Uuid
   preferredBrand String?   @map("preferred_brand")
   carType        String?   @map("car_type")
@@ -81,7 +82,7 @@ model UserPreference {
 }
 
 model ScrapingJob {
-  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   source       String?
   recordsAdded Int?      @map("records_added")
   status       String?

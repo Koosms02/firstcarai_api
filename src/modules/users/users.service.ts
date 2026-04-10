@@ -8,7 +8,17 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateUserDto) {
-    return this.prisma.user.create({ data: dto });
+    return this.prisma.user.upsert({
+      where: { email: dto.email },
+      update: {
+        netSalary: dto.netSalary,
+        creditScore: dto.creditScore,
+        yearsLicensed: dto.yearsLicensed,
+        gender: dto.gender,
+        location: dto.location,
+      },
+      create: dto,
+    });
   }
 
   async findOne(id: string) {
@@ -22,10 +32,19 @@ export class UsersService {
 
   async upsertPreferences(userId: string, dto: CreatePreferenceDto) {
     await this.findOne(userId);
-    return this.prisma.userPreference.upsert({
-      where: { id: (await this.prisma.userPreference.findFirst({ where: { userId } }))?.id ?? '' },
-      update: { ...dto },
-      create: { userId, ...dto },
+    const existingPreference = await this.prisma.userPreference.findFirst({
+      where: { userId },
+    });
+
+    if (existingPreference) {
+      return this.prisma.userPreference.update({
+        where: { id: existingPreference.id },
+        data: dto,
+      });
+    }
+
+    return this.prisma.userPreference.create({
+      data: { userId, ...dto },
     });
   }
 }
