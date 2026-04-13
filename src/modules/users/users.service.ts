@@ -8,16 +8,17 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateUserDto) {
+    const profileFields = {
+      netSalary: dto.netSalary,
+      creditScore: dto.creditScore,
+      yearsLicensed: dto.yearsLicensed,
+      gender: dto.gender,
+      location: dto.location,
+    };
     return this.prisma.user.upsert({
       where: { email: dto.email },
-      update: {
-        netSalary: dto.netSalary,
-        creditScore: dto.creditScore,
-        yearsLicensed: dto.yearsLicensed,
-        gender: dto.gender,
-        location: dto.location,
-      },
-      create: dto,
+      update: profileFields,
+      create: { email: dto.email, password: '', ...profileFields },
     });
   }
 
