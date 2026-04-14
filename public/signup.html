@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up — FirstCarAI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f7fa;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 0.25rem;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 0.35rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.6rem 0.85rem;
+      border: 1px solid #dde1ea;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #1a1a2e;
+      background: #fafbfc;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: #4f6ef7;
+      background: #fff;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .optional-label {
+      color: #aaa;
+      font-weight: 400;
+      font-size: 0.75rem;
+      margin-left: 4px;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 0.75rem;
+      background: #4f6ef7;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      transition: background 0.15s;
+    }
+
+    button[type="submit"]:hover { background: #3a58e0; }
+    button[type="submit"]:disabled { background: #a0aec0; cursor: not-allowed; }
+
+    .message {
+      margin-top: 1rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .message.success { background: #e6f4ea; color: #2d6a4f; display: block; }
+    .message.error   { background: #fdecea; color: #b00020; display: block; }
+
+    .signin-link {
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 0.875rem;
+      color: #666;
+    }
+
+    .signin-link a { color: #4f6ef7; text-decoration: none; }
+    .signin-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Create account</h1>
+    <p class="subtitle">Find the right first car for your budget.</p>
+
+    <form id="signupForm">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Min. 8 characters" required minlength="8" />
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="netSalary">Monthly net salary <span class="optional-label">(optional)</span></label>
+          <input type="number" id="netSalary" name="netSalary" placeholder="e.g. 2500" min="0" />
+        </div>
+        <div class="form-group">
+          <label for="creditScore">Credit score <span class="optional-label">(optional)</span></label>
+          <input type="number" id="creditScore" name="creditScore" placeholder="e.g. 700" min="300" max="850" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="yearsLicensed">Years licensed <span class="optional-label">(optional)</span></label>
+          <input type="number" id="yearsLicensed" name="yearsLicensed" placeholder="e.g. 2" min="0" />
+        </div>
+        <div class="form-group">
+          <label for="gender">Gender <span class="optional-label">(optional)</span></label>
+          <select id="gender" name="gender">
+            <option value="">Select…</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+            <option value="prefer_not_to_say">Prefer not to say</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="location">Location <span class="optional-label">(optional)</span></label>
+        <input type="text" id="location" name="location" placeholder="e.g. London" />
+      </div>
+
+      <button type="submit" id="submitBtn">Create account</button>
+
+      <div class="message" id="message"></div>
+    </form>
+
+    <div class="signin-link">
+      Already have an account? <a href="/signin.html">Sign in</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('signupForm');
+    const btn  = document.getElementById('submitBtn');
+    const msg  = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      btn.disabled = true;
+      btn.textContent = 'Creating account…';
+      msg.className = 'message';
+      msg.textContent = '';
+
+      const body = {
+        email:    document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value,
+      };
+
+      const netSalary     = document.getElementById('netSalary').value;
+      const creditScore   = document.getElementById('creditScore').value;
+      const yearsLicensed = document.getElementById('yearsLicensed').value;
+      const gender        = document.getElementById('gender').value;
+      const location      = document.getElementById('location').value.trim();
+
+      if (netSalary)     body.netSalary     = Number(netSalary);
+      if (creditScore)   body.creditScore   = Number(creditScore);
+      if (yearsLicensed) body.yearsLicensed = Number(yearsLicensed);
+      if (gender)        body.gender        = gender;
+      if (location)      body.location      = location;
+
+      try {
+        const res  = await fetch('/auth/signup', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(body),
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          msg.className   = 'message success';
+          msg.textContent = 'Account created! Redirecting…';
+          // Store token and redirect (adjust path as needed)
+          localStorage.setItem('access_token', data.access_token);
+          setTimeout(() => { window.location.href = '/'; }, 1200);
+        } else {
+          msg.className   = 'message error';
+          msg.textContent = data.message || 'Something went wrong.';
+          btn.disabled    = false;
+          btn.textContent = 'Create account';
+        }
+      } catch {
+        msg.className   = 'message error';
+        msg.textContent = 'Network error — please try again.';
+        btn.disabled    = false;
+        btn.textContent = 'Create account';
+      }
+    });
+  </script>
+</body>
+</html>

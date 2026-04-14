@@ -31,6 +31,11 @@ export class UsersService {
     return user;
   }
 
+  async remove(id: string) {
+    await this.findOne(id);
+    return this.prisma.user.delete({ where: { id } });
+  }
+
   async upsertPreferences(userId: string, dto: CreatePreferenceDto) {
     await this.findOne(userId);
     const existingPreference = await this.prisma.userPreference.findFirst({
