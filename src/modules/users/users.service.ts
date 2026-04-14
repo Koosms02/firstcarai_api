@@ -22,6 +22,23 @@ export class UsersService {
     });
   }
 
+  async findAll() {
+    return this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        netSalary: true,
+        creditScore: true,
+        yearsLicensed: true,
+        gender: true,
+        location: true,
+        createdAt: true,
+      },
+    });
+  }
+
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
