@@ -27,6 +27,8 @@ export class AuthService {
       data: {
         email: dto.email,
         password: hashed,
+        fullName: dto.fullName,
+        idNumber: dto.idNumber,
         netSalary: dto.netSalary,
         creditScore: dto.creditScore,
         yearsLicensed: dto.yearsLicensed,

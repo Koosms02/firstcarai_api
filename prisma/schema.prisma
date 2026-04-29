@@ -15,6 +15,7 @@ model Car {
   mileage            Int?
   fuelType           String?             @map("fuel_type")
   transmission       String?
+  fuelEfficiency     Decimal?            @map("fuel_efficiency") @db.Decimal
   scrapedSource      String?             @map("scraped_source")
   createdAt          DateTime?           @default(now()) @map("created_at") @db.Timestamp(6)
   insuranceEstimates InsuranceEstimate[]
@@ -33,6 +34,8 @@ model User {
   email           String           @unique
   password        String
   role            Role             @default(USER)
+  fullName        String?          @map("full_name")
+  idNumber        String?          @map("id_number")
   netSalary       Decimal?         @map("net_salary") @db.Decimal
   creditScore     Int?             @map("credit_score")
   yearsLicensed   Int?             @map("years_licensed")

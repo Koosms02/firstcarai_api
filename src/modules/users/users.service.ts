@@ -6,10 +6,12 @@ import { CreatePreferenceDto } from './dto/create-preference.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(dto: CreateUserDto) {
     const profileFields = {
+      fullName: dto.fullName,
+      idNumber: dto.idNumber,
       netSalary: dto.netSalary,
       creditScore: dto.creditScore,
       yearsLicensed: dto.yearsLicensed,
@@ -30,6 +32,8 @@ export class UsersService {
         id: true,
         email: true,
         role: true,
+        fullName: true,
+        idNumber: true,
         netSalary: true,
         creditScore: true,
         yearsLicensed: true,
@@ -58,6 +62,8 @@ export class UsersService {
         id: true,
         email: true,
         role: true,
+        fullName: true,
+        idNumber: true,
         netSalary: true,
         creditScore: true,
         yearsLicensed: true,
