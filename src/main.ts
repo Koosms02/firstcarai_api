@@ -8,13 +8,13 @@ async function bootstrap() {
   loadEnv();
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useStaticAssets(join(__dirname, '..', 'public'), { extensions: ['html'] });
-  const corsOrigins = process.env.CORS_ORIGIN?.split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const rawOrigin = process.env.CORS_ORIGIN?.trim();
+  const corsOrigin =
+    !rawOrigin || rawOrigin === '*'
+      ? true
+      : rawOrigin.split(',').map((o) => o.trim()).filter(Boolean);
 
-  app.enableCors({
-    origin: corsOrigins && corsOrigins.length > 0 ? corsOrigins : true,
-  });
+  app.enableCors({ origin: corsOrigin });
 
   await app.listen(process.env.PORT ?? 3001);
 }
