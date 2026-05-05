@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GenerateRecommendationDto } from './dto/generate-recommendation.dto';
+import * as crypto from 'crypto';
 
 const LOAN_TERM_MONTHS = 60;
 const AFFORDABILITY_RATIO = 0.20;
@@ -89,23 +90,42 @@ export class RecommendationsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async generate(dto: GenerateRecommendationDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: dto.userId },
-      include: { preferences: true },
-    });
-    if (!user) throw new NotFoundException(`User ${dto.userId} not found`);
-    if (!user.netSalary || !user.creditScore) {
-      throw new NotFoundException('User must have netSalary and creditScore set');
-    }
+    let netSalary: number;
+    let creditScore: number;
+    let preference: any = null;
+    let userLocation: string | null = null;
+    let idNumber: string | null = null;
 
-    const netSalary = Number(user.netSalary);
-    const creditScore = user.creditScore;
-    const preference = user.preferences[0] ?? null;
+    if (dto.userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: dto.userId },
+        include: { preferences: true },
+      });
+      if (!user) throw new NotFoundException(`User ${dto.userId} not found`);
+      if (!user.netSalary || !user.creditScore) {
+        throw new NotFoundException('User must have netSalary and creditScore set');
+      }
+
+      netSalary = Number(user.netSalary);
+      creditScore = user.creditScore;
+      preference = user.preferences[0] ?? null;
+      userLocation = user.location;
+      idNumber = user.idNumber ?? null;
+    } else {
+      if (!dto.netSalary || !dto.creditScore) {
+        throw new NotFoundException('Guest must provide netSalary and creditScore');
+      }
+      netSalary = Number(dto.netSalary);
+      creditScore = Number(dto.creditScore);
+      preference = dto.preferences ?? null;
+      userLocation = dto.location ?? null;
+      idNumber = dto.idNumber ?? null;
+    }
 
     // Spec §2.1: Affordable Monthly Budget = netSalary × 0.20
     const affordableBudget = netSalary * AFFORDABILITY_RATIO;
 
-    const age = user.idNumber ? extractAgeFromId(user.idNumber) : null;
+    const age = idNumber ? extractAgeFromId(idNumber) : null;
 
     const cars = await this.prisma.car.findMany({
       include: { insuranceEstimates: true },
@@ -124,7 +144,7 @@ export class RecommendationsService {
         const insuranceCost = lookupInsuranceCost(
           car.insuranceEstimates,
           price,
-          user.location,
+          userLocation,
           creditScore,
         );
 
@@ -166,26 +186,42 @@ export class RecommendationsService {
       .sort((a, b) => b!.score - a!.score)
       .slice(0, TOP_N);
 
-    await this.prisma.recommendation.deleteMany({ where: { userId: dto.userId } });
-    const saved = await Promise.all(
-      scored.map(r =>
-        this.prisma.recommendation.create({
-          data: {
-            userId: dto.userId,
-            carId: r!.car.id,
-            estimatedMonthlyCost: r!.estimatedMonthlyCost,
-            insuranceCost: r!.insuranceCost,
-            loanCost: r!.loanCost,
-            maintenanceCost: r!.maintenanceCost,
-            fuelCost: r!.fuelCost,
-            score: r!.score,
-          },
-          include: { car: true },
-        }),
-      ),
-    );
-
-    return saved;
+    if (dto.userId) {
+      await this.prisma.recommendation.deleteMany({ where: { userId: dto.userId } });
+      const saved = await Promise.all(
+        scored.map(r =>
+          this.prisma.recommendation.create({
+            data: {
+              userId: dto.userId,
+              carId: r!.car.id,
+              estimatedMonthlyCost: r!.estimatedMonthlyCost,
+              insuranceCost: r!.insuranceCost,
+              loanCost: r!.loanCost,
+              maintenanceCost: r!.maintenanceCost,
+              fuelCost: r!.fuelCost,
+              score: r!.score,
+            },
+            include: { car: true },
+          }),
+        ),
+      );
+      return saved;
+    } else {
+      // For guest, return without saving, adding a fake ID
+      return scored.map(r => ({
+        id: crypto.randomUUID(),
+        userId: null,
+        carId: r!.car.id,
+        estimatedMonthlyCost: r!.estimatedMonthlyCost,
+        insuranceCost: r!.insuranceCost,
+        loanCost: r!.loanCost,
+        maintenanceCost: r!.maintenanceCost,
+        fuelCost: r!.fuelCost,
+        score: r!.score,
+        createdAt: new Date(),
+        car: r!.car,
+      }));
+    }
   }
 
   async findByUser(userId: string) {
