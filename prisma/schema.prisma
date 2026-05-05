@@ -16,6 +16,7 @@ model Car {
   fuelType           String?             @map("fuel_type")
   transmission       String?
   fuelEfficiency     Decimal?            @map("fuel_efficiency") @db.Decimal
+  imageUrl           String?             @map("image_url")
   scrapedSource      String?             @map("scraped_source")
   createdAt          DateTime?           @default(now()) @map("created_at") @db.Timestamp(6)
   insuranceEstimates InsuranceEstimate[]

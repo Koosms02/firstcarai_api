@@ -29,17 +29,17 @@ function calcMonthlyLoan(price: number): number {
   return price / LOAN_TERM_MONTHS;
 }
 
-// Spec §2.3: FuelCost = (Distance / FuelEfficiency) × FuelPrice
+// Spec §2.3: FuelCost = (Distance / 100) × FuelEfficiency(L/100km) × FuelPrice
 function calcFuelCost(fuelEfficiency: number | null, fuelType: string | null): number {
   if (fuelEfficiency && fuelEfficiency > 0) {
-    return (MONTHLY_DISTANCE_KM / fuelEfficiency) * FUEL_PRICE_PER_LITRE;
+    return (MONTHLY_DISTANCE_KM / 100) * fuelEfficiency * FUEL_PRICE_PER_LITRE;
   }
   // Fallback by fuel type when fuelEfficiency not in DB
   switch (fuelType?.toLowerCase()) {
     case 'electric': return 500;
-    case 'hybrid': return 900;
-    case 'diesel': return (MONTHLY_DISTANCE_KM / 17) * FUEL_PRICE_PER_LITRE;
-    default: return (MONTHLY_DISTANCE_KM / 13) * FUEL_PRICE_PER_LITRE; // petrol
+    case 'hybrid': return (MONTHLY_DISTANCE_KM / 100) * 4.5 * FUEL_PRICE_PER_LITRE;
+    case 'diesel': return (MONTHLY_DISTANCE_KM / 100) * 7.5 * FUEL_PRICE_PER_LITRE;
+    default: return (MONTHLY_DISTANCE_KM / 100) * 9.0 * FUEL_PRICE_PER_LITRE; // petrol
   }
 }
 
@@ -48,47 +48,40 @@ function calcMaintenanceCost(price: number): number {
   return (price * 0.01) / 12;
 }
 
-// Spec §2.5: Insurance = BaseRate × RiskFactor × CarValueFactor
-// Influenced by: age, location, car type, credit score
-function calcInsuranceCost(
+// Map credit score to the risk category used in insurance_estimates table
+function creditScoreToRiskCategory(creditScore: number): string {
+  if (creditScore >= 700) return 'low';
+  if (creditScore >= 600) return 'medium';
+  return 'high';
+}
+
+// Look up insurance cost from seeded insurance_estimates rows.
+// Falls back to formula-based estimate if no matching row exists.
+function lookupInsuranceCost(
+  insuranceEstimates: { location: string | null; riskCategory: string | null; estimatedMonthly: any }[],
   price: number,
-  carType: string | null,
-  age: number | null,
-  province: string | null,
+  userLocation: string | null,
   creditScore: number,
 ): number {
-  const BASE_RATE = 500;
+  const riskCategory = creditScoreToRiskCategory(creditScore);
+  const userProv = userLocation?.toLowerCase() ?? '';
 
-  let ageFactor = 1.0;
-  if (age !== null) {
-    if (age < 25) ageFactor = 1.8;
-    else if (age < 30) ageFactor = 1.4;
-    else if (age <= 50) ageFactor = 1.0;
-    else ageFactor = 1.2;
+  // Find estimate matching both province and risk tier
+  const match = insuranceEstimates.find(e => {
+    const estProv = e.location?.toLowerCase() ?? '';
+    return estProv === userProv && e.riskCategory === riskCategory;
+  });
+  if (match) return Number(match.estimatedMonthly);
+
+  // Partial match: same risk tier, any province (use average)
+  const sameTier = insuranceEstimates.filter(e => e.riskCategory === riskCategory);
+  if (sameTier.length > 0) {
+    const avg = sameTier.reduce((sum, e) => sum + Number(e.estimatedMonthly), 0) / sameTier.length;
+    return avg;
   }
 
-  let creditFactor = 1.0;
-  if (creditScore >= 750) creditFactor = 0.85;
-  else if (creditScore >= 700) creditFactor = 0.90;
-  else if (creditScore >= 650) creditFactor = 1.00;
-  else if (creditScore >= 600) creditFactor = 1.10;
-  else creditFactor = 1.25;
-
-  const prov = province?.toLowerCase() ?? '';
-  let locationFactor = 1.0;
-  if (prov.includes('gauteng')) locationFactor = 1.30;
-  else if (prov.includes('western cape')) locationFactor = 1.20;
-  else if (prov.includes('kwazulu') || prov.includes('natal')) locationFactor = 1.15;
-  else if (prov.includes('eastern cape')) locationFactor = 1.10;
-
-  const ct = carType?.toLowerCase() ?? '';
-  let carTypeFactor = 1.0;
-  if (ct === 'suv') carTypeFactor = 1.20;
-  else if (ct === 'bakkie') carTypeFactor = 1.15;
-
-  const carValueFactor = price / 100000;
-
-  return BASE_RATE * ageFactor * creditFactor * locationFactor * carTypeFactor * carValueFactor;
+  // Last resort: 2.5% of car value per year / 12 months
+  return (price * 0.025) / 12;
 }
 
 @Injectable()
@@ -127,11 +120,10 @@ export class RecommendationsService {
         // Spec §2.2 simplified MVP
         const loanCost = calcMonthlyLoan(price);
 
-        // Spec §2.5 insurance formula
-        const insuranceCost = calcInsuranceCost(
+        // §2.5 insurance: look up from seeded insurance_estimates table
+        const insuranceCost = lookupInsuranceCost(
+          car.insuranceEstimates,
           price,
-          preference?.carType ?? null,
-          age,
           user.location,
           creditScore,
         );
