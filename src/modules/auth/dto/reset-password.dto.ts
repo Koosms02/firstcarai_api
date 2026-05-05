@@ -1,5 +1,5 @@
 export class ResetPasswordDto {
   email: string;
-  resetCode: string;
+  token: string;
   newPassword: string;
 }

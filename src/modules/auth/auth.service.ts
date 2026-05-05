@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignupDto } from './dto/signup.dto';
 import { SigninDto } from './dto/signin.dto';
@@ -60,25 +61,23 @@ export class AuthService {
 
     // Always respond the same way so we don't reveal whether an email is registered
     if (!user) {
-      return { message: 'If this email is registered, a reset code has been generated.' };
+      return { resetPath: null };
     }
 
-    // Generate a 6-digit numeric code
-    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedCode = await bcrypt.hash(resetCode, 10);
-    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+    // Generate a UUID token, store its bcrypt hash (never store raw token)
+    const token = randomUUID();
+    const hashedToken = await bcrypt.hash(token, 10);
+    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await this.prisma.user.update({
       where: { email: dto.email },
-      data: { passwordResetToken: hashedCode, passwordResetExpiry: expiry },
+      data: { passwordResetToken: hashedToken, passwordResetExpiry: expiry },
     });
 
-    // In production this code would be sent via email.
-    // Returned here for development purposes only.
-    return {
-      message: 'Reset code generated. In production this would be sent to your email.',
-      resetCode,
-    };
+    // Return the path so the frontend can build the full URL.
+    // In production this URL would be emailed to the user.
+    const encodedEmail = encodeURIComponent(dto.email);
+    return { resetPath: `/r/${encodedEmail}/${token}` };
   }
 
   async resetPassword(dto: ResetPasswordDto) {
@@ -92,7 +91,7 @@ export class AuthService {
       throw new BadRequestException('The reset code has expired. Please request a new one.');
     }
 
-    const valid = await bcrypt.compare(dto.resetCode, user.passwordResetToken);
+    const valid = await bcrypt.compare(dto.token, user.passwordResetToken);
     if (!valid) throw new BadRequestException('Invalid reset code.');
 
     const hashed = await bcrypt.hash(dto.newPassword, 10);
