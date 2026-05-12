@@ -7,9 +7,12 @@ import { CarsModule } from './modules/cars/cars.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CreditScoreModule } from './modules/credit-score/credit-score.module';
+import { AnalyzeExpensesModule } from './modules/analyze-expenses/analyze-expenses.module';
+import { AiRecommendationsModule } from './modules/ai-recommendations/ai-recommendations.module';
+import { AiAdvisorModule } from './modules/ai-advisor/ai-advisor.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, CarsModule, RecommendationsModule, AuthModule, CreditScoreModule],
+  imports: [PrismaModule, UsersModule, CarsModule, RecommendationsModule, AuthModule, CreditScoreModule, AnalyzeExpensesModule, AiRecommendationsModule, AiAdvisorModule],
   controllers: [AppController],
   providers: [AppService],
 })
