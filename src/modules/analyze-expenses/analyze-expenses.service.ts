@@ -65,7 +65,7 @@ export class AnalyzeExpensesService {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new BadRequestException('ANTHROPIC_API_KEY is not set.');
 
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const { Anthropic } = await import('@anthropic-ai/sdk');
     const client = new Anthropic({ apiKey });
 
     const message = await client.messages.create({
@@ -84,7 +84,7 @@ export class AnalyzeExpensesService {
     if (!apiKey) throw new BadRequestException('OPENAI_API_KEY is not set.');
 
     this.logger.log('[analyze-expenses/openai] calling gpt-4o-mini');
-    const OpenAI = (await import('openai')).default;
+    const { OpenAI } = await import('openai');
     const client = new OpenAI({ apiKey });
 
     const completion = await client.chat.completions.create({
