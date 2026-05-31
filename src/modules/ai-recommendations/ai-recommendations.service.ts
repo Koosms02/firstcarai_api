@@ -293,7 +293,7 @@ export class AiRecommendationsService {
     if (!apiKey) throw new BadRequestException('OPENAI_API_KEY is not set.');
 
     const serperKey = process.env.SERPER_KEY;
-    const { default: OpenAI } = await import('openai');
+    const { OpenAI } = await import('openai');
     const client = new OpenAI({ apiKey });
 
     const chat = (content: string) =>
@@ -406,7 +406,7 @@ Return ONLY a raw JSON array — no markdown, no explanation.`;
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) throw new BadRequestException('ANTHROPIC_API_KEY is not set.');
 
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const { Anthropic } = await import('@anthropic-ai/sdk');
     const client = new Anthropic({ apiKey });
 
     const message = await client.messages.create({
