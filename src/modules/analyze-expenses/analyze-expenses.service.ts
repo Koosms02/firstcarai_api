@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { AnalyzeExpensesDto } from './dto/analyze-expenses.dto';
+import { AnalyzeExpensesDto, AnalyzeDocumentDto } from './dto/analyze-expenses.dto';
 
 export interface ExpenseBreakdown {
   groceries: number;
@@ -7,6 +7,30 @@ export interface ExpenseBreakdown {
   loans: number;
   other: number;
 }
+
+export interface LocationResult {
+  province: string | null;
+  city: string | null;
+}
+
+export interface PayslipResult {
+  netSalary: number | null;
+}
+
+const UTILITY_BILL_PROMPT = `You are analyzing a South African municipal or electricity bill to extract the account holder's location.
+Extract the province and city/municipality from the billing address or account details.
+
+SA provinces: Eastern Cape, Free State, Gauteng, KwaZulu-Natal, Limpopo, Mpumalanga, North West, Northern Cape, Western Cape.
+
+Return ONLY a valid JSON object with no explanation or markdown:
+{"province": "<province name or null>", "city": "<city/town name or null>"}`;
+
+const PAYSLIP_PROMPT = `You are analyzing a South African payslip. Extract the employee's net (take-home) salary — the final amount paid after all deductions.
+Look for labels like "Net Pay", "Net Salary", "Take Home Pay", "Nett Pay", "Amount Payable".
+Return the amount as a plain number in Rand (no currency symbols or commas).
+
+Return ONLY a valid JSON object with no explanation or markdown:
+{"netSalary": <number or null>}`;
 
 const SYSTEM_PROMPT = `You are a South African bank statement analyst. Analyze the provided bank statement text and categorize all debit/expense transactions into:
 - groceries: food and grocery stores (Woolworths, Pick n Pay, PnP, Shoprite, Checkers, SPAR, Food Lovers, Boxer, OK Foods, etc.)
@@ -115,6 +139,104 @@ export class AnalyzeExpensesService {
     const result = await model.generateContent(`Bank statement:\n${text}`);
     const raw = result.response.text().trim();
     return this.parseJson(raw);
+  }
+
+  async analyzeDocument(dto: AnalyzeDocumentDto): Promise<ExpenseBreakdown | LocationResult | PayslipResult> {
+    const provider = (process.env.AI_PROVIDER ?? 'anthropic').toLowerCase();
+    const text = dto.text.slice(0, 40000);
+    const docType = dto.documentType ?? 'BANK_STATEMENT';
+
+    let systemPrompt: string;
+    if (docType === 'UTILITY_BILL') {
+      systemPrompt = UTILITY_BILL_PROMPT;
+    } else if (docType === 'PAYSLIP') {
+      systemPrompt = PAYSLIP_PROMPT;
+    } else {
+      systemPrompt = SYSTEM_PROMPT;
+    }
+
+    this.logger.log(`[analyze-document] provider=${provider} docType=${docType} text_length=${text.length}`);
+
+    try {
+      let raw: string;
+      switch (provider) {
+        case 'anthropic':
+          raw = await this.callAnthropic(text, systemPrompt);
+          break;
+        case 'openai':
+          raw = await this.callOpenAI(text, systemPrompt);
+          break;
+        case 'gemini':
+          raw = await this.callGemini(text, systemPrompt);
+          break;
+        default:
+          throw new BadRequestException(`Unknown AI_PROVIDER "${provider}".`);
+      }
+
+      const cleaned = raw.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
+      const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+
+      if (docType === 'UTILITY_BILL') {
+        return {
+          province: (parsed.province as string) ?? null,
+          city: (parsed.city as string) ?? null,
+        } as LocationResult;
+      } else if (docType === 'PAYSLIP') {
+        return {
+          netSalary: parsed.netSalary != null ? Number(parsed.netSalary) : null,
+        } as PayslipResult;
+      } else {
+        return {
+          groceries: Number(parsed.groceries ?? 0),
+          accounts: Number(parsed.accounts ?? 0),
+          loans: Number(parsed.loans ?? 0),
+          other: Number(parsed.other ?? 0),
+        } as ExpenseBreakdown;
+      }
+    } catch (err) {
+      this.logger.error(`[analyze-document] failed`, err instanceof Error ? err.stack : err);
+      throw err;
+    }
+  }
+
+  private async callAnthropic(text: string, systemPrompt: string): Promise<string> {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new BadRequestException('ANTHROPIC_API_KEY is not set.');
+    const { Anthropic } = await import('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey });
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 256,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: `Document text:\n${text}` }],
+    });
+    return (message.content[0] as { text: string }).text.trim();
+  }
+
+  private async callOpenAI(text: string, systemPrompt: string): Promise<string> {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) throw new BadRequestException('OPENAI_API_KEY is not set.');
+    const { OpenAI } = await import('openai');
+    const client = new OpenAI({ apiKey });
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 256,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Document text:\n${text}` },
+      ],
+    });
+    return completion.choices[0].message.content?.trim() ?? '';
+  }
+
+  private async callGemini(text: string, systemPrompt: string): Promise<string> {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new BadRequestException('GEMINI_API_KEY is not set.');
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const client = new GoogleGenerativeAI(apiKey);
+    const model = client.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: systemPrompt });
+    const result = await model.generateContent(`Document text:\n${text}`);
+    return result.response.text().trim();
   }
 
   private parseJson(raw: string): ExpenseBreakdown {

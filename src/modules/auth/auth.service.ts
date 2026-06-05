@@ -13,6 +13,14 @@ import { SigninDto } from './dto/signin.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
+/** Digits 6-9 of SA ID: 0000–4999 = female, 5000–9999 = male */
+function extractGenderFromId(idNumber: string): string | null {
+  if (!idNumber || idNumber.length < 10) return null;
+  const genderDigits = parseInt(idNumber.substring(6, 10), 10);
+  if (isNaN(genderDigits)) return null;
+  return genderDigits >= 5000 ? 'male' : 'female';
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -26,18 +34,21 @@ export class AuthService {
     });
     if (existing) throw new ConflictException('Email already in use');
 
+    const existingId = await this.prisma.user.findFirst({
+      where: { idNumber: dto.idNumber },
+    });
+    if (existingId) throw new ConflictException('ID number already registered');
+
     const hashed = await bcrypt.hash(dto.password, 10);
+    const gender = extractGenderFromId(dto.idNumber);
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         password: hashed,
-        fullName: dto.fullName,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
         idNumber: dto.idNumber,
-        netSalary: dto.netSalary,
-        creditScore: dto.creditScore,
-        yearsLicensed: dto.yearsLicensed,
-        gender: dto.gender,
-        location: dto.location,
+        gender,
       },
     });
 

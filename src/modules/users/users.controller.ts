@@ -2,7 +2,6 @@ import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/commo
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { CreatePreferenceDto } from './dto/create-preference.dto';
 
 @Controller('users')
 export class UsersController {
@@ -31,10 +30,5 @@ export class UsersController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
-  }
-
-  @Post(':id/preferences')
-  upsertPreferences(@Param('id') id: string, @Body() dto: CreatePreferenceDto) {
-    return this.usersService.upsertPreferences(id, dto);
   }
 }

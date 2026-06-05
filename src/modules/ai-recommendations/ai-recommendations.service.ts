@@ -279,6 +279,39 @@ export class AiRecommendationsService {
           );
       }
       this.logger.log(`[ai-recommendations] success count=${result.length}`);
+
+      // Persist recommendations to DB for logged-in users
+      if (dto.userId) {
+        await this.prisma.recommendation.deleteMany({ where: { userId: dto.userId } });
+        await Promise.all(
+          result.map(r =>
+            this.prisma.recommendation.create({
+              data: {
+                userId: dto.userId,
+                make: r.car.make,
+                model: r.car.model,
+                year: r.car.year,
+                price: r.car.price,
+                carFuelType: r.car.fuelType,
+                transmission: r.car.transmission,
+                mileage: r.car.mileage,
+                imageUrl: r.car.imageUrl,
+                dealerName: r.dealer?.name ?? null,
+                dealerLocation: r.dealer?.location ?? null,
+                dealerReputationNote: r.dealer?.reputationNote ?? null,
+                estimatedMonthlyCost: r.estimatedMonthlyCost,
+                insuranceCost: r.insuranceCost,
+                loanCost: r.loanCost,
+                maintenanceCost: r.maintenanceCost,
+                fuelCost: r.fuelCost,
+                score: r.score,
+              },
+            }),
+          ),
+        );
+        this.logger.log(`[ai-recommendations] saved ${result.length} recommendations for userId=${dto.userId}`);
+      }
+
       return result;
     } catch (err) {
       this.logger.error(`[ai-recommendations] failed provider=${provider}`, err instanceof Error ? err.stack : err);

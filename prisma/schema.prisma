@@ -6,47 +6,44 @@ datasource db {
   provider = "postgresql"
 }
 
-model Car {
-  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  make               String
-  model              String
-  year               Int?
-  price              Decimal?            @db.Decimal
-  mileage            Int?
-  fuelType           String?             @map("fuel_type")
-  transmission       String?
-  fuelEfficiency     Decimal?            @map("fuel_efficiency") @db.Decimal
-  imageUrl           String?             @map("image_url")
-  scrapedSource      String?             @map("scraped_source")
-  createdAt          DateTime?           @default(now()) @map("created_at") @db.Timestamp(6)
-  insuranceEstimates InsuranceEstimate[]
-  recommendations    Recommendation[]
-
-  @@map("cars")
-}
-
 enum Role {
   USER
   ADMIN
 }
 
+enum DocumentType {
+  PAYSLIP
+  BANK_STATEMENT
+  UTILITY_BILL
+}
+
 model User {
-  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email           String           @unique
-  password        String
-  role            Role             @default(USER)
-  fullName        String?          @map("full_name")
-  idNumber        String?          @map("id_number")
-  netSalary       Decimal?         @map("net_salary") @db.Decimal
-  creditScore     Int?             @map("credit_score")
-  yearsLicensed   Int?             @map("years_licensed")
-  gender          String?
-  location        String?
-  passwordResetToken  String?          @map("password_reset_token")
-  passwordResetExpiry DateTime?        @map("password_reset_expiry")
-  createdAt           DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email               String         @unique
+  password            String
+  role                Role           @default(USER)
+  firstName           String?        @map("first_name")
+  lastName            String?        @map("last_name")
+  idNumber            String?        @unique @map("id_number")
+  gender              String?
+  netSalary           Decimal?       @map("net_salary") @db.Decimal
+  creditScore         Int?           @map("credit_score")
+  yearsLicensed       Int?           @map("years_licensed")
+  location            String?
+  city                String?
+  preferredBrand      String?        @map("preferred_brand")
+  carType             String?        @map("car_type")
+  fuelType            String?        @map("fuel_type")
+  transmission        String?
+  expensesGroceries   Decimal?       @map("expenses_groceries") @db.Decimal
+  expensesAccounts    Decimal?       @map("expenses_accounts") @db.Decimal
+  expensesLoans       Decimal?       @map("expenses_loans") @db.Decimal
+  expensesOther       Decimal?       @map("expenses_other") @db.Decimal
+  passwordResetToken  String?        @map("password_reset_token")
+  passwordResetExpiry DateTime?      @map("password_reset_expiry")
+  createdAt           DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
   recommendations     Recommendation[]
-  preferences         UserPreference[]
+  documents           Document[]
 
   @@map("users")
 }
@@ -54,7 +51,21 @@ model User {
 model Recommendation {
   id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId               String?   @map("user_id") @db.Uuid
-  carId                String?   @map("car_id") @db.Uuid
+  isPreferred          Boolean   @default(false) @map("is_preferred")
+  // Inline car data
+  make                 String?
+  model                String?
+  year                 Int?
+  price                Decimal?  @db.Decimal
+  carFuelType          String?   @map("car_fuel_type")
+  transmission         String?
+  mileage              Int?
+  imageUrl             String?   @map("image_url")
+  // Dealer info
+  dealerName           String?   @map("dealer_name")
+  dealerLocation       String?   @map("dealer_location")
+  dealerReputationNote String?   @map("dealer_reputation_note")
+  // Cost breakdown
   estimatedMonthlyCost Decimal?  @map("estimated_monthly_cost") @db.Decimal
   insuranceCost        Decimal?  @map("insurance_cost") @db.Decimal
   loanCost             Decimal?  @map("loan_cost") @db.Decimal
@@ -62,33 +73,19 @@ model Recommendation {
   fuelCost             Decimal?  @map("fuel_cost") @db.Decimal
   score                Decimal?  @db.Decimal
   createdAt            DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  car                  Car?      @relation(fields: [carId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user                 User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("recommendations")
 }
 
-model InsuranceEstimate {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  carId            String?   @map("car_id") @db.Uuid
-  location         String?
-  riskCategory     String?   @map("risk_category")
-  estimatedMonthly Decimal?  @map("estimated_monthly") @db.Decimal
-  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  car              Car?      @relation(fields: [carId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+model Document {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String       @map("user_id") @db.Uuid
+  documentType  DocumentType @map("document_type")
+  fileName      String       @map("file_name")
+  extractedData Json?        @map("extracted_data")
+  createdAt     DateTime?    @default(now()) @map("created_at") @db.Timestamp(6)
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@map("insurance_estimates")
-}
-
-model UserPreference {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId         String?   @map("user_id") @db.Uuid
-  preferredBrand String?   @map("preferred_brand")
-  carType        String?   @map("car_type")
-  fuelType       String?   @map("fuel_type")
-  transmission   String?
-  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
-  user           User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@map("user_preferences")
+  @@map("documents")
 }
