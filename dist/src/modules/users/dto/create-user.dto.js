@@ -5,11 +5,17 @@ class CreateUserDto {
     email;
     netSalary;
     creditScore;
-    fullName;
-    idNumber;
     yearsLicensed;
-    gender;
     location;
+    city;
+    preferredBrand;
+    carType;
+    fuelType;
+    transmission;
+    expensesGroceries;
+    expensesAccounts;
+    expensesLoans;
+    expensesOther;
 }
 exports.CreateUserDto = CreateUserDto;
 //# sourceMappingURL=create-user.dto.js.map

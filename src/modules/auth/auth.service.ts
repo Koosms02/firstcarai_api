@@ -34,12 +34,7 @@ export class AuthService {
     });
     if (existing) throw new ConflictException('Email already in use');
 
-    const existingId = await this.prisma.user.findFirst({
-      where: { idNumber: dto.idNumber },
-    });
-    if (existingId) throw new ConflictException('ID number already registered');
-
-    const hashed = await bcrypt.hash(dto.password, 10);
+const hashed = await bcrypt.hash(dto.password, 10);
     const gender = extractGenderFromId(dto.idNumber);
     const user = await this.prisma.user.create({
       data: {

@@ -24,17 +24,27 @@ let AnalyzeExpensesController = class AnalyzeExpensesController {
     analyze(dto) {
         return this.service.analyze(dto);
     }
+    analyzeDocument(dto) {
+        return this.service.analyzeDocument(dto);
+    }
 };
 exports.AnalyzeExpensesController = AnalyzeExpensesController;
 __decorate([
-    (0, common_1.Post)(),
+    (0, common_1.Post)('analyze-expenses'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [analyze_expenses_dto_1.AnalyzeExpensesDto]),
     __metadata("design:returntype", void 0)
 ], AnalyzeExpensesController.prototype, "analyze", null);
+__decorate([
+    (0, common_1.Post)('analyze-document'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [analyze_expenses_dto_1.AnalyzeDocumentDto]),
+    __metadata("design:returntype", void 0)
+], AnalyzeExpensesController.prototype, "analyzeDocument", null);
 exports.AnalyzeExpensesController = AnalyzeExpensesController = __decorate([
-    (0, common_1.Controller)('analyze-expenses'),
+    (0, common_1.Controller)(),
     __metadata("design:paramtypes", [analyze_expenses_service_1.AnalyzeExpensesService])
 ], AnalyzeExpensesController);
 //# sourceMappingURL=analyze-expenses.controller.js.map

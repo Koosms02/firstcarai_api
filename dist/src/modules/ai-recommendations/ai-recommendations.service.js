@@ -257,6 +257,32 @@ let AiRecommendationsService = AiRecommendationsService_1 = class AiRecommendati
                     throw new common_1.BadRequestException(`Unknown AI_PROVIDER "${provider}". Use "openai", "anthropic", or "gemini".`);
             }
             this.logger.log(`[ai-recommendations] success count=${result.length}`);
+            if (dto.userId) {
+                await this.prisma.recommendation.deleteMany({ where: { userId: dto.userId } });
+                await Promise.all(result.map(r => this.prisma.recommendation.create({
+                    data: {
+                        userId: dto.userId,
+                        make: r.car.make,
+                        model: r.car.model,
+                        year: r.car.year,
+                        price: r.car.price,
+                        carFuelType: r.car.fuelType,
+                        transmission: r.car.transmission,
+                        mileage: r.car.mileage,
+                        imageUrl: r.car.imageUrl,
+                        dealerName: r.dealer?.name ?? null,
+                        dealerLocation: r.dealer?.location ?? null,
+                        dealerReputationNote: r.dealer?.reputationNote ?? null,
+                        estimatedMonthlyCost: r.estimatedMonthlyCost,
+                        insuranceCost: r.insuranceCost,
+                        loanCost: r.loanCost,
+                        maintenanceCost: r.maintenanceCost,
+                        fuelCost: r.fuelCost,
+                        score: r.score,
+                    },
+                })));
+                this.logger.log(`[ai-recommendations] saved ${result.length} recommendations for userId=${dto.userId}`);
+            }
             return result;
         }
         catch (err) {
@@ -269,7 +295,7 @@ let AiRecommendationsService = AiRecommendationsService_1 = class AiRecommendati
         if (!apiKey)
             throw new common_1.BadRequestException('OPENAI_API_KEY is not set.');
         const serperKey = process.env.SERPER_KEY;
-        const { default: OpenAI } = await import('openai');
+        const { OpenAI } = await import('openai');
         const client = new OpenAI({ apiKey });
         const chat = (content) => client.chat.completions.create({
             model: 'gpt-4o',
@@ -365,7 +391,7 @@ Return ONLY a raw JSON array — no markdown, no explanation.`;
         const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey)
             throw new common_1.BadRequestException('ANTHROPIC_API_KEY is not set.');
-        const Anthropic = (await import('@anthropic-ai/sdk')).default;
+        const { Anthropic } = await import('@anthropic-ai/sdk');
         const client = new Anthropic({ apiKey });
         const message = await client.messages.create({
             model: 'claude-haiku-4-5-20251001',

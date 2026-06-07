@@ -12,38 +12,39 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RecommendationsController = void 0;
+exports.DocumentsController = void 0;
 const common_1 = require("@nestjs/common");
-const recommendations_service_1 = require("./recommendations.service");
-let RecommendationsController = class RecommendationsController {
-    recommendationsService;
-    constructor(recommendationsService) {
-        this.recommendationsService = recommendationsService;
+const documents_service_1 = require("./documents.service");
+const create_document_dto_1 = require("./dto/create-document.dto");
+let DocumentsController = class DocumentsController {
+    documentsService;
+    constructor(documentsService) {
+        this.documentsService = documentsService;
+    }
+    create(dto) {
+        return this.documentsService.create(dto);
     }
     findByUser(userId) {
-        return this.recommendationsService.findByUser(userId);
-    }
-    setPreferred(id) {
-        return this.recommendationsService.setPreferred(id);
+        return this.documentsService.findByUser(userId);
     }
 };
-exports.RecommendationsController = RecommendationsController;
+exports.DocumentsController = DocumentsController;
 __decorate([
-    (0, common_1.Get)('user/:userId'),
-    __param(0, (0, common_1.Param)('userId')),
+    (0, common_1.Post)(),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [create_document_dto_1.CreateDocumentDto]),
+    __metadata("design:returntype", void 0)
+], DocumentsController.prototype, "create", null);
+__decorate([
+    (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('userId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
-], RecommendationsController.prototype, "findByUser", null);
-__decorate([
-    (0, common_1.Patch)(':id/prefer'),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", void 0)
-], RecommendationsController.prototype, "setPreferred", null);
-exports.RecommendationsController = RecommendationsController = __decorate([
-    (0, common_1.Controller)('recommendations'),
-    __metadata("design:paramtypes", [recommendations_service_1.RecommendationsService])
-], RecommendationsController);
-//# sourceMappingURL=recommendations.controller.js.map
+], DocumentsController.prototype, "findByUser", null);
+exports.DocumentsController = DocumentsController = __decorate([
+    (0, common_1.Controller)('documents'),
+    __metadata("design:paramtypes", [documents_service_1.DocumentsService])
+], DocumentsController);
+//# sourceMappingURL=documents.controller.js.map

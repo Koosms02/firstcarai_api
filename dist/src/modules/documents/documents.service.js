@@ -9,39 +9,41 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RecommendationsService = void 0;
+exports.DocumentsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
-let RecommendationsService = class RecommendationsService {
+let DocumentsService = class DocumentsService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async findByUser(userId) {
-        return this.prisma.recommendation.findMany({
-            where: { userId },
-            orderBy: { score: 'desc' },
+    async create(dto) {
+        return this.prisma.document.create({
+            data: {
+                userId: dto.userId,
+                documentType: dto.documentType,
+                fileName: dto.fileName,
+                extractedData: (dto.extractedData ?? undefined),
+            },
         });
     }
-    async setPreferred(recommendationId) {
-        const rec = await this.prisma.recommendation.findUnique({
-            where: { id: recommendationId },
-        });
-        if (!rec)
-            throw new common_1.NotFoundException(`Recommendation ${recommendationId} not found`);
-        await this.prisma.recommendation.updateMany({
-            where: { userId: rec.userId },
-            data: { isPreferred: false },
-        });
-        return this.prisma.recommendation.update({
-            where: { id: recommendationId },
-            data: { isPreferred: true },
+    async findByUser(userId) {
+        return this.prisma.document.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                documentType: true,
+                fileName: true,
+                extractedData: true,
+                createdAt: true,
+            },
         });
     }
 };
-exports.RecommendationsService = RecommendationsService;
-exports.RecommendationsService = RecommendationsService = __decorate([
+exports.DocumentsService = DocumentsService;
+exports.DocumentsService = DocumentsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
-], RecommendationsService);
-//# sourceMappingURL=recommendations.service.js.map
+], DocumentsService);
+//# sourceMappingURL=documents.service.js.map

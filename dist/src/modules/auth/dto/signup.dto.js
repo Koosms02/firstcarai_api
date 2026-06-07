@@ -4,12 +4,8 @@ exports.SignupDto = void 0;
 class SignupDto {
     email;
     password;
-    fullName;
-    netSalary;
-    creditScore;
-    yearsLicensed;
-    gender;
-    location;
+    firstName;
+    lastName;
     idNumber;
 }
 exports.SignupDto = SignupDto;
