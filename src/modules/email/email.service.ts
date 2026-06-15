@@ -1,18 +1,37 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Resend } from 'resend';
 
 @Injectable()
 export class EmailService {
-  private readonly resend: Resend;
+  private resend: any | null = null;
   private readonly fromAddress: string;
   private readonly logger = new Logger(EmailService.name);
 
   constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY);
+    const apiKey = process.env.RESEND_API_KEY;
     this.fromAddress = process.env.EMAIL_FROM || 'FirstCar <noreply@firstcar.co.za>';
+    if (apiKey) {
+      // Lazy-load Resend only when a key is configured
+      import('resend').then(({ Resend }) => {
+        this.resend = new Resend(apiKey);
+        this.logger.log('Resend email client initialised');
+      }).catch((err) => {
+        this.logger.warn(`Resend module not available: ${err.message}`);
+      });
+    } else {
+      this.logger.warn('RESEND_API_KEY not set — email sending is disabled');
+    }
+  }
+
+  isAvailable(): boolean {
+    return this.resend !== null;
   }
 
   async sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
+    if (!this.resend) {
+      this.logger.warn(`Cannot send reset email to ${to} — Resend not configured`);
+      throw new Error('Email service is not configured.');
+    }
+
     const { error } = await this.resend.emails.send({
       from: this.fromAddress,
       to,

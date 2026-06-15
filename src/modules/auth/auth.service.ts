@@ -8,7 +8,6 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { EmailService } from '../email/email.service';
 import { SignupDto } from './dto/signup.dto';
 import { SigninDto } from './dto/signin.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -27,7 +26,6 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly emailService: EmailService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -67,11 +65,8 @@ const hashed = await bcrypt.hash(dto.password, 10);
   async forgotPassword(dto: ForgotPasswordDto) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
 
-    const useEmail = !!process.env.RESEND_API_KEY;
-
-    // Always respond the same way so we don't reveal whether an email is registered
     if (!user) {
-      return useEmail ? { message: 'If that email is registered, you will receive a password reset link shortly.' } : { resetPath: null };
+      return { resetPath: null };
     }
 
     // Generate a UUID token, store its bcrypt hash (never store raw token)
@@ -85,15 +80,6 @@ const hashed = await bcrypt.hash(dto.password, 10);
     });
 
     const encodedEmail = encodeURIComponent(dto.email);
-
-    if (useEmail) {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const resetUrl = `${frontendUrl}/r/${encodedEmail}/${token}`;
-      await this.emailService.sendPasswordResetEmail(dto.email, resetUrl);
-      return { message: 'If that email is registered, you will receive a password reset link shortly.' };
-    }
-
-    // Fallback: return the reset path directly when no email service is configured
     return { resetPath: `/r/${encodedEmail}/${token}` };
   }
 
