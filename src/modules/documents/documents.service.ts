@@ -17,6 +17,20 @@ export class DocumentsService {
     });
   }
 
+  async findAll() {
+    return this.prisma.document.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        userId: true,
+        documentType: true,
+        fileName: true,
+        createdAt: true,
+        user: { select: { email: true } },
+      },
+    });
+  }
+
   async findByUser(userId: string) {
     return this.prisma.document.findMany({
       where: { userId },

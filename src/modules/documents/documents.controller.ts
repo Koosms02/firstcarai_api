@@ -12,7 +12,7 @@ export class DocumentsController {
   }
 
   @Get()
-  findByUser(@Query('userId') userId: string) {
-    return this.documentsService.findByUser(userId);
+  find(@Query('userId') userId?: string) {
+    return userId ? this.documentsService.findByUser(userId) : this.documentsService.findAll();
   }
 }

@@ -15,3 +15,13 @@ export class RecommendationsController {
     return this.recommendationsService.setPreferred(id);
   }
 }
+
+@Controller('preferences')
+export class PreferencesController {
+  constructor(private readonly recommendationsService: RecommendationsService) {}
+
+  @Get()
+  findAll() {
+    return this.recommendationsService.findAllPreferred();
+  }
+}

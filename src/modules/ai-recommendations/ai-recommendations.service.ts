@@ -280,12 +280,12 @@ export class AiRecommendationsService {
       }
       this.logger.log(`[ai-recommendations] success count=${result.length}`);
 
-      // Persist recommendations to DB for logged-in users
+      // Persist preferences to DB for logged-in users
       if (dto.userId) {
-        await this.prisma.recommendation.deleteMany({ where: { userId: dto.userId } });
+        await this.prisma.preference.deleteMany({ where: { userId: dto.userId } });
         await Promise.all(
           result.map(r =>
-            this.prisma.recommendation.create({
+            this.prisma.preference.create({
               data: {
                 userId: dto.userId,
                 make: r.car.make,
@@ -309,7 +309,7 @@ export class AiRecommendationsService {
             }),
           ),
         );
-        this.logger.log(`[ai-recommendations] saved ${result.length} recommendations for userId=${dto.userId}`);
+        this.logger.log(`[ai-recommendations] saved ${result.length} preferences for userId=${dto.userId}`);
       }
 
       return result;
